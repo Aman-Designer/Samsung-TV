@@ -364,6 +364,38 @@ try {
       }
     }
   });
+  await run('Panel spacing geometry', async () => {
+    await page();
+    for (const width of [1920, 1280]) {
+      await current.setViewportSize({ width, height: width * 9 / 16 });
+      await look({ layout: 'dock', focus: 'glass' }); await editor();
+      const divider = await current.locator('.ed-order-break.is-on').evaluate(e => {
+        const scale = document.getElementById('stage').getBoundingClientRect().width / 1920;
+        const text = document.createRange(); text.selectNodeContents(e);
+        const after = getComputedStyle(e, '::after');
+        return (e.getBoundingClientRect().right - text.getBoundingClientRect().right) / scale - parseFloat(after.width);
+      });
+      check('Editor divider separates its text and line at ' + width, Math.abs(divider - 16) < .5, divider);
+      await scene('home'); await nav('back');
+      const actions = await current.locator('.msg-acts>button').evaluateAll(elements => {
+        const scale = document.getElementById('stage').getBoundingClientRect().width / 1920;
+        return elements.length === 2 ? (elements[1].getBoundingClientRect().left - elements[0].getBoundingClientRect().right) / scale : null;
+      });
+      check('Leave actions retain their separation at ' + width, actions !== null && Math.abs(actions - 12) < .5, actions);
+      await scene('settings');
+      const groups = await current.locator('.settings-group').evaluateAll(elements => {
+        const scale = document.getElementById('stage').getBoundingClientRect().width / 1920;
+        return elements.map(e => (e.querySelector('.ico').getBoundingClientRect().left - e.querySelector('.settings-group-copy').getBoundingClientRect().right) / scale);
+      });
+      check('Settings group arrows stay separate from their copy at ' + width, groups.length === 6 && groups.every(gap => gap >= 31.5), groups);
+      await wallpaper();
+      const caption = await current.locator('.wallpaper-preview-name').evaluate(e => {
+        const scale = document.getElementById('stage').getBoundingClientRect().width / 1920;
+        return (e.children[1].getBoundingClientRect().left - e.children[0].getBoundingClientRect().right) / scale;
+      });
+      check('Wallpaper name and count retain their separation at ' + width, Math.abs(caption - 24) < .5, caption);
+    }
+  });
   await run('Real catalogue and native launch boundary', async () => {
     await page(); await library();
     const names = await current.locator('[data-action^="apps.open."] .label').allTextContents();

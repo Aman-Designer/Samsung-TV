@@ -20,7 +20,7 @@ from private_files import check_signed_widget, check_widget, private_path, secre
 class ToolTests(unittest.TestCase):
     def setUp(self):
         # Retain isolated fixtures rather than permanently delete files on an owner's Mac.
-        self.root = Path(tempfile.mkdtemp(prefix='cleanframe-tools-'))
+        self.root = Path(tempfile.mkdtemp(prefix='cleanframe-tools-')).resolve()
         (self.root / 'app').mkdir()
         (self.root / '.local').mkdir()
         (self.root / 'app/config.xml').write_bytes((ROOT / 'app/config.xml').read_bytes())
@@ -46,6 +46,20 @@ class ToolTests(unittest.TestCase):
         password = self.password('.local/certificates/private/certificate-password.txt')
         self.assertEqual(load_settings(self.root)['password_file'], password)
         self.assertIsNone(self.config(profile='Other profile')['password_file'])
+
+    def test_sdk_symlink_resolution_preserves_password_no_follow(self):
+        sdk = self.root / '.local/real-sdk'
+        sdk.mkdir()
+        alias = self.root / '.local/SDK path with spaces'
+        alias.symlink_to(sdk, target_is_directory=True)
+        password = self.password()
+        link = self.root / '.local/password-link.txt'
+        link.symlink_to(password)
+        settings = self.config(profile='Synthetic profile', sdk_path=str(alias), password_file=str(link))
+        self.assertEqual(settings['sdk_path'], sdk.resolve())
+        self.assertEqual(settings['password_file'], link)
+        with self.assertRaises(OSError):
+            read_password(settings['password_file'], self.root)
 
     def test_config_identity_validation_and_no_secret_errors(self):
         with self.assertRaisesRegex(ValueError, 'Set profile'):
@@ -189,7 +203,10 @@ with zipfile.ZipFile(target, 'a') as archive:
         profile = cli.parent / 'profiles.xml'
         profile.write_text('Synthetic profile: do not rewrite')
         identity = dict(package_id='AbCdEf1234', app_id='AbCdEf1234.MyHome')
-        settings = self.config(sdk_path=str(cli.parents[3]), profile='My profile', **identity)
+        alias = self.root / '.local/SDK alias with spaces'
+        alias.symlink_to(cli.parents[3], target_is_directory=True)
+        settings = self.config(sdk_path=str(alias), profile='My profile', **identity)
+        self.assertEqual(settings['sdk_path'], cli.parents[3].resolve())
         self.assertTrue(settings['sdk_path'].is_relative_to(self.root))
         with patch.object(package, 'load_settings', return_value=settings):
             with contextlib.redirect_stdout(io.StringIO()) as output:

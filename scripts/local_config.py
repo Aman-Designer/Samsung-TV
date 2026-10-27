@@ -84,7 +84,7 @@ def load_settings(root=ROOT):
     legacy_password = root / '.local/certificates/private/certificate-password.txt'
     # Only an absent config enables the original maintainer password-file default.
     password = config.get('password_file') if path.exists() else (str(legacy_password) if legacy_password.exists() else None)
-    return {'sdk_path': local_path(config.get('sdk_path', '.local/tizen-sdk'), root),
+    return {'sdk_path': local_path(config.get('sdk_path', '.local/tizen-sdk'), root).resolve(),
             'profile': profile, 'identity': identity,
             'password_file': local_path(password, root) if password is not None else None}
 

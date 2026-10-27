@@ -31,6 +31,7 @@ for filename in ['index.html']:
 for css in app.rglob('*.css'):
     source = re.sub(r'/\*.*?\*/', '', css.read_text(), flags=re.S)
     assert not re.search(r'(?:^|[;{}])\s*inset\s*:', source, re.I), 'Use explicit edges for Chromium 85: ' + str(css.relative_to(app))
+    assert not re.search(r'(?:^|[;{}])\s*(?:row-|column-)?gap\s*:', source, re.I), 'Use child margins for older flex engines: ' + str(css.relative_to(app))
     for reference in re.findall(r'url\([\"\']?([^\)\"\']+)', source):
         if ':' not in reference:
             assert (css.parent / reference.split('?')[0]).is_file(), 'Missing CSS resource: ' + reference
