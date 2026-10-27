@@ -8,6 +8,8 @@ from pathlib import Path
 import json
 import re
 import zipfile
+from local_config import override_identity
+from private_files import check_widget, private_path, secret_content
 
 ROOT = Path(__file__).resolve().parents[1]
 PUBLIC_FONT_IDS = ['geist', 'newsreader']
@@ -64,10 +66,12 @@ def font_overlay(root=ROOT, include_private=True):
     return assets
 
 
-def write_widget_archive(output, root=ROOT, include_private=True):
+def write_widget_archive(output, root=ROOT, include_private=True, identity=None):
     """Create an unsigned archive without reading signing or device settings."""
     app = root / 'app'
     overlay = font_overlay(root, include_private)
+    if identity is not None:
+        overlay['config.xml'] = override_identity((app / 'config.xml').read_bytes(), identity)
     with zipfile.ZipFile(output, 'w', zipfile.ZIP_DEFLATED, allowZip64=False) as package:
         for source in sorted(app.rglob('*')):
             if source.is_symlink():
@@ -75,6 +79,8 @@ def write_widget_archive(output, root=ROOT, include_private=True):
             if not source.is_file():
                 continue
             name = source.relative_to(app).as_posix()
+            if private_path(name) or secret_content(source.read_bytes()):
+                raise ValueError('Private material in app source: ' + name)
             if name.startswith('assets/private-fonts/'):
                 raise ValueError('Private font binaries must stay in .local/, not app/.')
             if name not in overlay and is_runtime_source(name):
@@ -84,4 +90,5 @@ def write_widget_archive(output, root=ROOT, include_private=True):
                 package.write(source, name)
             else:
                 package.writestr(name, source)
+    check_widget(output)
 

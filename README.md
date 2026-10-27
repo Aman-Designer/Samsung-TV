@@ -12,7 +12,7 @@ I highly recommend forking it and building on top of it, ideally with a coding a
 
 ## Try the interface
 
-You need Node.js 22+ and Python 3.10+ to run the browser preview.
+You need Node.js 22.13+ (22 LTS), or 24+, and Python 3.10+ to run the browser preview.
 
 ```sh
 git clone https://github.com/nthnclrk/CleanFrame.git
@@ -55,7 +55,7 @@ See [working with an agent](docs/for-agents.md) for the TV setup prompt and the 
 
 Use the staged [Samsung The Frame setup guide](docs/agent-tv-setup-guide.md) to understand the process used on my TV and adapt it to yours. It covers the remote's Developer Mode sequence, official Samsung tools, your own certificates and app identity, installation, visible checks and recovery.
 
-The signing and TV scripts are specific to my setup. Your agent will need to adapt the paths, signing profile, identity checks and installed-app IDs, then verify each stage with you. Installing the app and assigning the remote Home button are separate steps.
+Signing supports an ignored `.local/signing.json` based on `signing.example.json`: select your SDK, existing certificate profile and your own SDK-generated app identity. See [local signing setup](docs/development.md#local-tv-tools-and-signing). The TV installation commands and native Home helper still contain reference-machine assumptions. Your agent must check the installed-app IDs and each device stage with you. Installing the app and assigning the remote Home button are separate steps.
 
 | Area | Evidence and limits |
 | --- | --- |
@@ -71,6 +71,7 @@ The detailed [device record](docs/tv-status.md) separates observed results from 
 
 ```sh
 npm run check
+npm run check:tools
 npx playwright install chromium
 CLEANFRAME_PUBLIC_FONTS=1 npm run check:browser
 npm run check:public

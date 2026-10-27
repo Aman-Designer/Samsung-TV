@@ -117,6 +117,8 @@ Use Device Manager or SDB to connect to **your TV's address on port 26101**. Hav
 
 **If the connection is refused:** check both addresses and network isolation first. A responding TV information endpoint on port 8001 does not establish an SDB connection. On the reference Frame, the prompted restart was insufficient: developer access worked after switching off at the wall, waiting ten seconds and restoring power. Arrange this with the owner; never interrupt an update. A short Power press may enter Art Mode rather than restart the TV. Samsung also describes unplugging and reconnecting in its [developer debugging instructions](https://developer.samsung.com/smarttv/develop/extension-libraries/smart-view-sdk/receiver-apps/debugging.html).
 
+**2019 Frame contributor report:** on a QE55LS03R (Tizen 5.0, firmware T-MSMDEUC-1500.9), SDB 4.2.36 from Tizen Studio failed to connect while the TV web CLI’s SDB 4.2.25 worked. The contributor reported that Tizen Studio or Certificate Manager could replace the running SDB server, and that Art Mode or sleep left this TV refusing SDB until a full power cycle. Record which official SDB binary and server are in use before changing tools. Treat this as one TV’s result, and arrange any tool shutdown or power cycle with its owner during an authorised device task. See [PR #11](https://github.com/nthnclrk/CleanFrame/pull/11).
+
 Keep developer access on the trusted LAN. Do not add router port forwarding to solve a connection failure.
 
 **Agent prompt**
@@ -171,6 +173,8 @@ Samsung documents the [project wizard and configuration file](https://developer.
 
 For existing source, have the agent inspect its manifest first and create a consistent identity for your independent app. If an installed launcher already owns native Home routing, restore that routing before changing its identity.
 
+For CleanFrame, put the SDK-generated `package_id` and `app_id`, SDK path and existing signing profile in ignored `.local/signing.json`, using `signing.example.json` as the template. The packager changes the generated manifest, and the installer and app self-filter use the same identity. Leave tracked identity guards intact. The native Home helper remains tied to the reference setup and needs separate review and authority. See [local signing setup](development.md#local-tv-tools-and-signing) for SDK-managed passwords and the optional protected password file.
+
 ### Use the apps installed on your TV
 
 Your agent must read **your installed-app list**, present the app names for you to choose from, and map those choices to the actual launch IDs. If the connection is not ready, a photo of your Apps screen or a typed list can establish your preferences; the agent must retrieve and verify the IDs after connection. Don't assume Netflix, YouTube or any other service is installed, and don't install extra services to match the reference setup.
@@ -221,6 +225,14 @@ The helper assigned the native main Home operation, `http://tizen.org/appcontrol
 The [published S90D native Home work](https://github.com/splitcipher/couchroot/blob/83906b468836869933012da03a4018fb339462b3/docs/devices/s90d/README.md) explains the underlying method on a different model. It is a technical reference, not a universal installer. Review its native Home implementation with your own app IDs, addresses and saved originals before preparing any command.
 
 Your agent must review or adapt a native helper implementation for your exact firmware and `<APP_ID>`, then prepare concrete query, apply and restore commands. Replacing an app name in a command is insufficient.
+
+### Contributor reports and transport limits
+
+The [compatibility evidence](compatibility.md) records reports for other TVs. They do not extend the reference helper's guards.
+
+A contributor reported that the tested SDB route on a 2018 Samsung UE43NU7099 (Tizen 4.0, ARMv7) could list/debug/kill apps but returned `closed` for the shell commands tried (`0 help`, `id`, `ls` and `vconftool get db/appfw/home_appid`). They could not stage/run a helper through that route, and read or wrote no native settings. See [PR #8](https://github.com/nthnclrk/CleanFrame/pull/8). Their adapted launcher result does not establish support for the current upstream package on Tizen 4.0.
+
+During an explicitly authorised device task, check the developer capabilities and a harmless shell command before preparing a helper. Stop if the reviewed execution and recovery transport is unavailable. A native query can still require temporary staging.
 
 ### Prepare recovery before any native write
 
