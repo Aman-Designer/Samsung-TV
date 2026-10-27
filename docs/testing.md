@@ -10,13 +10,13 @@ npx playwright install chromium
 npm run check:browser
 ```
 
-`check` validates JavaScript syntax, package identity/version and bundled resources. It does not contact a TV. `check:browser` uses a fresh Playwright Chromium profile and its own loopback preview. It checks List and Dock navigation, single focus, Home controls, grouped Settings, explicit OK application, applied checkmarks, pending-load cancellation, retries, persistence, all fifteen wallpaper bundles, available fonts, 720p scaling, migrations, the Home editor and honest browser-only launch errors. Reports and screenshots are in ignored `.local/qa/`. A failed assertion exits with a nonzero status.
+`check` runs ES5 runtime lint, validates package identity/version and bundled resources, then tests the production device adapter with a synthetic API/clock. It does not contact a TV. `check:browser` uses a fresh Playwright Chromium profile and its own loopback preview. It checks List and Dock navigation, single focus, Home controls, grouped Settings, explicit OK application, applied checkmarks, pending-load cancellation, retries, persistence, all fifteen wallpaper bundles, available fonts, 720p scaling, migrations, the Home editor and honest browser-only launch errors. Reports and screenshots are in ignored `.local/qa/`. A failed assertion exits with a nonzero status.
 
 For public-source validation, set `CLEANFRAME_PUBLIC_FONTS=1` when running `check:browser`; the preview helper then excludes the local proprietary overlay. Run `npm run check:public` for the bounded source/history checks and `npm run export:public` for a widget that always excludes private fonts. The GitHub Actions workflow uses this public path. Browser/package checks do not clear third-party asset rights or validate TV behaviour.
 
 `check:tools` uses synthetic credentials and a fake SDK in isolated temporary folders. It checks local configuration, identity overlays, owner-only password files, both signing modes, failed-build handling, private-file rejection, public signature metadata and real Git index/history blobs. It contacts no TV and reads no real signing credentials. Temporary fixtures are retained for inspection instead of permanently deleted.
 
-`check:public` checks working files, index blobs and reachable Git history for the shared private-file policy and recognisable credential patterns. A working-file edit cannot hide a staged credential. Packaging and public export apply the same checks to widget contents; public signing certificates and signature XML are allowed. These checks are bounded and do not detect every possible secret.
+`check:public` checks working files, index blobs and all reachable Git refs (including fetched PR/checkpoint history) for the shared private-file policy and recognisable credential patterns. A working-file edit cannot hide a staged credential. Packaging and public export apply the same checks to widget contents; public signing certificates and signature XML are allowed. These checks are bounded and do not detect every possible secret. For release validation, also use a clean clone of the candidate branch without unrelated review refs. Generated native-helper output (`bin/`, `obj/`, DLLs, debug symbols and executables) is rejected.
 
 Optional local commit/push guards are in `.githooks/`. To enable them deliberately for this clone, run `git config --local core.hooksPath .githooks` after checking that this will not replace an existing hooks setup. They run `check:public` before committing or pushing. They are not enabled automatically and can be bypassed. Pre-push is the last local preventive check; CI runs after upload and can only detect exposure at that point. A later fix commit does not remove sensitive data from earlier commits. Keep CI and review as additional checks.
 
@@ -28,6 +28,8 @@ PLAYWRIGHT_BROWSERS_PATH="$PWD/.local/playwright" npm run check:browser
 ```
 
 For manual review, use `npm run dev` and open `/home/`. Use the arrow keys, Enter and Escape. Check the changed flow in List and Dock, on Photo, Light and Dark backgrounds. Check a single app and all nine apps when changing app layout. In Settings, browse without applying, apply with OK, return with both Back routes, and cancel a pending resource load. Check editor placement/undo, wallpaper rotation pausing during panels/background time, and restored focus on return when those flows change. Browser preferences are separate from TV preferences.
+
+`CLEANFRAME_PUBLIC_FONTS=1 npm run check:performance` runs the existing 4× CPU-throttled Chromium regression screen. Compare navigation work, frame stalls, retained DOM/heap and live-filter checks before and after rendering changes. This is not a physical-TV benchmark.
 
 ## Physical TV checks
 
