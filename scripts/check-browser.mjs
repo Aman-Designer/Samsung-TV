@@ -325,6 +325,45 @@ try {
       }
     }
   });
+  await run('Utility control geometry', async () => {
+    await page();
+    for (const width of [1920, 1280]) {
+      await current.setViewportSize({ width, height: width * 9 / 16 });
+      for (const layout of ['dock', 'list']) for (const controls of ['icons', 'both', 'text']) {
+        await look({ bg: 'photo', layout, controls, focus: 'glass', font: 'manrope' }); await scene('home');
+        if ((await call('where')).zone === 'util') await nav('back');
+        await nav(layout === 'dock' ? 'up' : 'right');
+        await nav(...Array(3).fill(layout === 'dock' ? 'left' : 'up'));
+        await current.waitForTimeout(180);
+        const spacing = await current.evaluate(({ layout, controls }) => {
+          const scale = document.getElementById('stage').getBoundingClientRect().width / 1920;
+          return [...document.querySelectorAll('#utils .u')].map(button => {
+            const content = button.querySelector('.u-content');
+            const children = [...content.children].filter(e => getComputedStyle(e).display !== 'none');
+            const visibleWidth = children.reduce((sum, e) => sum + e.getBoundingClientRect().width / scale, 0);
+            const gap = controls !== 'both' ? 0 : layout === 'dock' ? 10 : button.dataset.action === 'util.settings' ? 18.9 : 17.9;
+            return { action: button.dataset.action, children: children.length, extraWidth: content.getBoundingClientRect().width / scale - visibleWidth, gap };
+          });
+        }, { layout, controls });
+        check(layout + '/' + controls + ' uses spacing between visible children at ' + width,
+          spacing.length === 3 && spacing.every(s => s.children === (controls === 'both' ? 2 : 1) && Math.abs(s.extraWidth - s.gap) < .5), spacing);
+        const focused = [];
+        for (let i = 0; i < 3; i++) {
+          if (i) await nav(layout === 'dock' ? 'right' : 'down');
+          focused.push(await current.evaluate(() => {
+            const button = document.querySelector('#utils .u.is-focus'), lens = document.querySelector('.ut-lens.is-current');
+            if (!button || !lens || ShoreQA.where().focusCount !== 1) return false;
+            const bounds = lens.getBoundingClientRect();
+            const content = [...button.querySelector('.u-content').children].filter(e => getComputedStyle(e).display !== 'none');
+            const caption = document.querySelector('.util-focus-label.is-on');
+            if (caption && ShoreQA.state().look.layout === 'list') content.push(caption);
+            return content.every(e => { const r = e.getBoundingClientRect(); return r.left >= bounds.left - 1 && r.right <= bounds.right + 1 && r.top >= bounds.top - 1 && r.bottom <= bounds.bottom + 1; });
+          }));
+        }
+        check(layout + '/' + controls + ' keeps each focused control inside its lens at ' + width, focused.every(Boolean), focused);
+      }
+    }
+  });
   await run('Real catalogue and native launch boundary', async () => {
     await page(); await library();
     const names = await current.locator('[data-action^="apps.open."] .label').allTextContents();
