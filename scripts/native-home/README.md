@@ -16,3 +16,5 @@ The existing private `original.json` is the tested rollback baseline. Do not ove
 Even query/inspect stages temporary helper files on the device. These are device operations, not offline repository checks. A clone without the private baseline, SDK and compiled output cannot perform the tested rollback. Preserve the local recovery folder separately; GitHub is a source backup only.
 
 The implementation was reviewed against the [published S90D native Home work](https://github.com/splitcipher/couchroot/blob/83906b468836869933012da03a4018fb339462b3/docs/devices/s90d/README.md). This Frame's native query, apply/restore/reapply and physical Home-from-Netflix test were checked independently. Source review does not replace device testing after future firmware changes.
+
+Other owners' reports are recorded in [TV compatibility evidence](../../docs/compatibility.md). They do not extend this helper's firmware/runtime guards. The current snapshot validator rejects empty Home and string values; it has no absent-key reset implementation. Restore depends on the same SDB transport as apply, with no independently verified fallback if that transport becomes unavailable.
