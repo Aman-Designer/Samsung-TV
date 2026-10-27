@@ -47,7 +47,6 @@ def secret_blobs(ids):
 
 
 candidates = set(git('ls-files', '--cached', '--others', '--exclude-standard', '-z').decode().split('\0')) - {''}
-objects = git('rev-list', '--objects', '--all').decode().splitlines()
 findings = []
 font_suffixes = {'.ttf', '.otf', '.woff', '.woff2', '.eot'}
 
@@ -92,17 +91,30 @@ for entry in git('ls-files', '--stage', '-z').decode().split('\0'):
     if mode == '120000' or forbidden(name):
         findings.append('Private/generated or symlink path in Git index: ' + name)
 
-object_ids = {line.split(' ', 1)[0] for line in objects}
+history = set()
+# rev-list --objects records only one path per object. A later rename could hide
+# a private filename, so inspect each distinct committed tree with NUL records.
+for tree in sorted(set(git('log', '--all', '--format=%T').decode().splitlines())):
+    for entry in git('ls-tree', '-r', '-z', tree).decode().split('\0'):
+        if not entry:
+            continue
+        metadata, name = entry.split('\t', 1)
+        mode, kind, oid = metadata.split()
+        if forbidden(name):
+            findings.append('Private/generated path in reachable Git history: ' + name)
+        if mode == '120000':
+            findings.append('Symlink in reachable Git history: ' + name)
+        if kind == 'blob':
+            history.add((name, oid))
+
+object_ids = {oid for _, oid in history}
 unsafe_blobs = secret_blobs(object_ids | {oid for _, oid in index})
 for name, oid in index:
     if oid in unsafe_blobs:
         findings.append('Credential pattern in Git index: ' + name)
-for line in objects:
-    parts = line.split(' ', 1)
-    if len(parts) == 2 and forbidden(parts[1]):
-        findings.append('Private/generated path in reachable Git history: ' + parts[1])
-    if parts[0] in unsafe_blobs:
-        findings.append('Credential pattern in reachable Git history: ' + (parts[1] if len(parts) == 2 else parts[0]))
+for name, oid in history:
+    if oid in unsafe_blobs:
+        findings.append('Credential pattern in reachable Git history: ' + name)
 private_root = ROOT / '.local/research/font-candidates'
 private_fonts = [p for p in private_root.rglob('*') if p.is_file() and p.name.startswith('PP') and p.suffix.lower() in font_suffixes]
 for path in private_fonts:

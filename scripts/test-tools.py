@@ -264,6 +264,13 @@ with zipfile.ZipFile(target, 'a') as archive:
         self.assertIn('Git index: scripts/native-home/Control.dll', result.stderr)
         git('-c', 'user.name=Offline Test', '-c', 'user.email=offline@example.invalid', 'commit', '-qm', 'Generated fixtures')
         self.assertIn('reachable Git history: scripts/native-home/obj/build.json', check().stderr)
+        # A rename must not hide a private historical filename for an existing blob.
+        (self.root / 'old-store.pfx').write_bytes(b'Synthetic opaque certificate store')
+        git('add', '-f', 'old-store.pfx')
+        git('-c', 'user.name=Offline Test', '-c', 'user.email=offline@example.invalid', 'commit', '-qm', 'Historical private path')
+        git('mv', 'old-store.pfx', 'renamed-store.txt')
+        git('-c', 'user.name=Offline Test', '-c', 'user.email=offline@example.invalid', 'commit', '-qm', 'Rename fixture')
+        self.assertIn('reachable Git history: old-store.pfx', check().stderr)
 
     def test_signing_rejects_prompts_and_times_out(self):
         cli = self.root / 'fake-sdk'
