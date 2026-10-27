@@ -42,7 +42,7 @@ async function run(name, fn) {
 async function closePage() { if (current) { current.__closing = true; await current.close(); current = null; } }
 
 // Production still calls its unmodified device.js adapter.
-function installHarness({ seed, legacy, mock, catalog, minuteMs, catalogFailure, noFontAPI, storageFailure }) {
+function installHarness({ seed, legacy, mock, catalog, minuteMs, catalogFailure, noFontAPI, storageFailure, currentAppId }) {
   if (!sessionStorage.getItem('__cleanframe_seeded')) {
     if (seed !== undefined) localStorage.setItem('cleanframe.home.v1', typeof seed === 'string' ? seed : JSON.stringify(seed));
     if (legacy !== undefined) localStorage.setItem('cleanframe.shore.v1', typeof legacy === 'string' ? legacy : JSON.stringify(legacy));
@@ -69,6 +69,7 @@ function installHarness({ seed, legacy, mock, catalog, minuteMs, catalogFailure,
     ApplicationControlData: function (key, value) { this.key = key; this.value = value; },
     ApplicationControl: function (operation, uri, mime, category, data) { Object.assign(this, { operation, uri, mime, category, data }); },
     application: {
+      getCurrentApplication() { return { appInfo: { id: currentAppId || 'nClrkHome1.FrameHome' } }; },
       getAppsInfo(ok, fail) {
         const tv = window.__tv;
         tv.catalogCalls++;
@@ -258,6 +259,20 @@ try {
     await current.evaluate(() => { window.dispatchEvent(new Event('focus')); __tv.launchFailure = true; });
     await scene('home'); await act('home.app.netflix'); await current.waitForFunction(() => ShoreQA.where().view === 'message');
     check('Launch failure is shown', /could not|unavailable|try again/i.test(await current.locator('#stage').innerText()));
+  });
+  await run('Independent app identity self-filter', async () => {
+    const appId = 'AbCdEf1234.MyHome';
+    await page({ currentAppId: appId, catalog: CATALOG.filter(a => a.id !== 'nClrkHome1.FrameHome').concat({ id: appId, name: 'Family Home', show: true }) });
+    await library();
+    const independent = await state();
+    const names = await current.locator('[data-action^="apps.open."] .label').allTextContents();
+    check('Independent build excludes its actual application ID', independent.catalog.ids.includes(EXTRA) && !independent.catalog.ids.includes(appId) && !names.includes('Family Home'));
+    await closePage();
+    await page();
+    await current.evaluate(() => { delete tizen.application.getCurrentApplication; });
+    await library();
+    const fallback = await state();
+    check('Unavailable current-app API keeps reference identity fallback', fallback.catalog.ids.includes(EXTRA) && !fallback.catalog.ids.includes('nClrkHome1.FrameHome'));
   });
   await run('Catalogue failure and retry', async () => {
     await page({ catalogFailure: true }); await library();

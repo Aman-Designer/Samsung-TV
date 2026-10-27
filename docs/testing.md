@@ -5,6 +5,7 @@
 ```sh
 npm ci
 npm run check
+npm run check:tools
 npx playwright install chromium
 npm run check:browser
 ```
@@ -12,6 +13,12 @@ npm run check:browser
 `check` validates JavaScript syntax, package identity/version and bundled resources. It does not contact a TV. `check:browser` uses a fresh Playwright Chromium profile and its own loopback preview. It checks List and Dock navigation, single focus, Home controls, grouped Settings, explicit OK application, applied checkmarks, pending-load cancellation, retries, persistence, all fifteen wallpaper bundles, available fonts, 720p scaling, migrations, the Home editor and honest browser-only launch errors. Reports and screenshots are in ignored `.local/qa/`. A failed assertion exits with a nonzero status.
 
 For public-source validation, set `CLEANFRAME_PUBLIC_FONTS=1` when running `check:browser`; the preview helper then excludes the local proprietary overlay. Run `npm run check:public` for the bounded source/history checks and `npm run export:public` for a widget that always excludes private fonts. The GitHub Actions workflow uses this public path. Browser/package checks do not clear third-party asset rights or validate TV behaviour.
+
+`check:tools` uses synthetic credentials and a fake SDK in isolated temporary folders. It checks local configuration, identity overlays, owner-only password files, both signing modes, failed-build handling, private-file rejection, public signature metadata and real Git index/history blobs. It contacts no TV and reads no real signing credentials. Temporary fixtures are retained for inspection instead of permanently deleted.
+
+`check:public` checks working files, index blobs and reachable Git history for the shared private-file policy and recognisable credential patterns. A working-file edit cannot hide a staged credential. Packaging and public export apply the same checks to widget contents; public signing certificates and signature XML are allowed. These checks are bounded and do not detect every possible secret.
+
+Optional local commit/push guards are in `.githooks/`. To enable them deliberately for this clone, run `git config --local core.hooksPath .githooks` after checking that this will not replace an existing hooks setup. They run `check:public` before committing or pushing. They are not enabled automatically and can be bypassed. Pre-push is the last local preventive check; CI runs after upload and can only detect exposure at that point. A later fix commit does not remove sensitive data from earlier commits. Keep CI and review as additional checks.
 
 If the default browser/cache location is unavailable, use a writable local path for both commands:
 
