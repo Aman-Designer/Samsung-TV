@@ -48,6 +48,8 @@ class ToolTests(unittest.TestCase):
         self.assertIsNone(self.config(profile='Other profile')['password_file'])
 
     def test_config_identity_validation_and_no_secret_errors(self):
+        with self.assertRaisesRegex(ValueError, 'Set profile'):
+            self.config(sdk_path='/opt/my sdk')
         selected = self.config(sdk_path='/opt/my sdk', profile='My profile',
                                package_id='AbCdEf1234', app_id='AbCdEf1234.MyHome')
         self.assertEqual(selected['sdk_path'], Path('/opt/my sdk'))
@@ -56,7 +58,7 @@ class ToolTests(unittest.TestCase):
                        dict(password='synthetic secret'), dict(profile='bad\nprofile')]:
             with self.subTest(values=tuple(values)):
                 with self.assertRaises(ValueError) as result:
-                    self.config(**values)
+                    self.config(**{'profile': 'Synthetic profile', **values})
                 self.assertNotIn('synthetic secret', str(result.exception))
         (self.root / '.local/signing.json').write_text('{invalid synthetic secret')
         with self.assertRaises(ValueError) as result:

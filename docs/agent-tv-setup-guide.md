@@ -228,7 +228,7 @@ Your agent must review or adapt a native helper implementation for your exact fi
 
 The [compatibility evidence](compatibility.md) records reports for other TVs. They do not extend the reference helper's guards.
 
-A contributor reported that the tested SDB route on a 2018 Samsung UE43NU7099 (Tizen 4.0, ARMv7) could list/debug/kill apps but returned `closed` for ordinary shell commands, including `id` and `vconftool get`. They could not stage/run a helper through that route, and read or wrote no native settings. See [PR #8](https://github.com/nthnclrk/CleanFrame/pull/8). Their adapted launcher result does not establish support for the current upstream package on Tizen 4.0.
+A contributor reported that the tested SDB route on a 2018 Samsung UE43NU7099 (Tizen 4.0, ARMv7) could list/debug/kill apps but returned `closed` for the shell commands tried (`0 help`, `id`, `ls` and `vconftool get db/appfw/home_appid`). They could not stage/run a helper through that route, and read or wrote no native settings. See [PR #8](https://github.com/nthnclrk/CleanFrame/pull/8). Their adapted launcher result does not establish support for the current upstream package on Tizen 4.0.
 
 During an explicitly authorised device task, check the developer capabilities and a harmless shell command before preparing a helper. Stop if the reviewed execution and recovery transport is unavailable. A native query can still require temporary staging.
 

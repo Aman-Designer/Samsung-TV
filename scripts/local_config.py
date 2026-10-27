@@ -70,6 +70,8 @@ def load_settings(root=ROOT):
     allowed = {'sdk_path', 'profile', 'password_file', 'package_id', 'app_id'}
     if not isinstance(config, dict) or set(config) - allowed:
         raise ValueError('Unknown signing setting. See signing.example.json; do not put passwords in JSON.')
+    if path.exists() and 'profile' not in config:
+        raise ValueError('Set profile in .local/signing.json to your existing SDK certificate profile.')
     profile = config.get('profile', 'FrameHome')
     if not isinstance(profile, str) or not profile.strip() or any(ord(char) < 32 for char in profile):
         raise ValueError('profile must be a non-empty certificate profile name.')
